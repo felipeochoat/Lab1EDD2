@@ -16,8 +16,8 @@ import pygame
 from arbol_avl import ArbolAVL
 from visualizador import cargar_sprites
 from ui import (
-    C, init_fuentes,
-    PantallaMenu, PantallaAyuda,
+    C, AJUSTES, init_fuentes,
+    PantallaMenu, PantallaAyuda, PantallaAjustes,
     PantallaNarrativa, PantallaEvidencias,
     PantallaPregunta, PantallaArbol,
     PantallaReporte,
@@ -36,6 +36,17 @@ def main():
     pantalla = pygame.display.set_mode((ANCHO, ALTO))
     pygame.display.set_caption("CyberDetective – El Árbol de la Verdad")
     reloj = pygame.time.Clock()
+
+    # ── Música de fondo ───────────────────────────────────
+    import os
+    music_path = os.path.join(os.path.dirname(__file__), "music_cyberpunk.wav")
+    try:
+        pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=512)
+        pygame.mixer.music.load(music_path)
+        pygame.mixer.music.set_volume(AJUSTES["volumen"])
+        pygame.mixer.music.play(-1)   # -1 = loop infinito
+    except Exception as e:
+        print(f"[música] No se pudo cargar: {e}")
 
     init_fuentes()
     sprites = cargar_sprites(ANCHO, ALTO)
@@ -57,6 +68,9 @@ def main():
 
         elif nuevo_estado == "ayuda":
             pantalla_actual = PantallaAyuda(ANCHO, ALTO)
+
+        elif nuevo_estado == "ajustes":
+            pantalla_actual = PantallaAjustes(ANCHO, ALTO)
 
         elif nuevo_estado == "narrativa":
             if nivel_idx < len(NIVELES):
@@ -109,10 +123,16 @@ def main():
                     ir_a("narrativa")
                 elif resultado == "ayuda":
                     ir_a("ayuda")
+                elif resultado == "ajustes":
+                    ir_a("ajustes")
                 elif resultado == "salir":
                     corriendo = False
 
             elif estado == "ayuda":
+                if resultado == "menu":
+                    ir_a("menu")
+
+            elif estado == "ajustes":
                 if resultado == "menu":
                     ir_a("menu")
 

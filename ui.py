@@ -7,6 +7,15 @@ Estilo pixel-art: colores planos, bordes duros, fuentes monoespaciadas.
 import pygame
 
 # ──────────────────────────────────────────────────────────
+#  AJUSTES GLOBALES (volumen, tamaño, contraste)
+# ──────────────────────────────────────────────────────────
+AJUSTES = {
+    "volumen":   0.5,       # 0.0 – 1.0
+    "tamaño":    "NORMAL",  # "GRANDE" | "NORMAL" | "PEQUEÑO"
+    "contraste": False,     # True = alto contraste
+}
+
+# ──────────────────────────────────────────────────────────
 #  PALETA DE COLORES
 # ──────────────────────────────────────────────────────────
 C = {
@@ -38,6 +47,38 @@ C = {
 
 RADIO_NODO = 28
 
+# Paleta alternativa de alto contraste
+C_CONTRASTE = {
+    "fondo":           (0,   0,   0),
+    "panel":           (20,  20,  20),
+    "panel_borde":     (255, 255, 0),
+    "acento":          (0,   255, 255),
+    "acento2":         (255, 255, 0),
+    "verde":           (0,   255, 0),
+    "rojo":            (255, 60,  60),
+    "lila":            (220, 100, 255),
+    "texto":           (255, 255, 255),
+    "texto_dim":       (200, 200, 200),
+    "blanco":          (255, 255, 255),
+    "negro":           (0,   0,   0),
+    "nodo_normal":     (0,   80,  200),
+    "nodo_nuevo":      (0,   255, 0),
+    "nodo_raiz":       (255, 255, 0),
+    "linea":           (180, 180, 180),
+    "boton_normal":    (40,  40,  80),
+    "boton_hover":     (80,  80,  160),
+    "boton_activo":    (0,   255, 255),
+    "boton_correcto":  (0,   180, 0),
+    "boton_incorrecto":(200, 0,   0),
+    "evidencia_bg":    (10,  10,  30),
+    "evidencia_hover": (30,  30,  80),
+    "evidencia_col":   (0,   255, 0),
+}
+
+def get_C():
+    """Devuelve la paleta activa según el ajuste de contraste."""
+    return C_CONTRASTE if AJUSTES["contraste"] else C
+
 
 def _fuente(nombre, size, bold=False):
     try:
@@ -52,13 +93,24 @@ F = {}
 
 def init_fuentes():
     global F
+    tam = AJUSTES["tamaño"]
+    if tam == "GRANDE":
+        escala = 1.35
+    elif tam == "PEQUEÑO":
+        escala = 0.80
+    else:
+        escala = 1.0
+
+    def s(base):
+        return max(8, int(base * escala))
+
     F = {
-        "titulo":   _fuente("consolas", 28, bold=True),
-        "subtitulo":_fuente("consolas", 20, bold=True),
-        "normal":   _fuente("consolas", 16),
-        "pequeña":  _fuente("consolas", 13),
-        "nodo":     _fuente("consolas", 12, bold=True),
-        "grande":   _fuente("consolas", 36, bold=True),
+        "titulo":    _fuente("consolas", s(28), bold=True),
+        "subtitulo": _fuente("consolas", s(20), bold=True),
+        "normal":    _fuente("consolas", s(16)),
+        "pequeña":   _fuente("consolas", s(13)),
+        "nodo":      _fuente("consolas", s(12), bold=True),
+        "grande":    _fuente("consolas", s(36), bold=True),
     }
 
 
@@ -71,6 +123,11 @@ def rect_pixel(surf, color, rect, borde_color=None, grosor_borde=2):
     pygame.draw.rect(surf, color, rect)
     if borde_color:
         pygame.draw.rect(surf, borde_color, rect, grosor_borde)
+
+
+def cc(key):
+    """Shorthand: color de la paleta activa."""
+    return get_C()[key]
 
 
 def texto_centrado(surf, texto, fuente_key, color, cx, cy):
@@ -282,57 +339,61 @@ class PantallaMenu:
         self.alto = alto
         self.sprites = sprites
         cx = ancho // 2
-        self.btn_jugar  = Boton((cx - 140, 340, 280, 50), "▶  INICIAR INVESTIGACIÓN",
-                                color=C["boton_normal"], color_hover=C["boton_hover"],
-                                color_texto=C["acento"])
-        self.btn_ayuda  = Boton((cx - 140, 410, 280, 50), "?  CÓMO JUGAR")
-        self.btn_salir  = Boton((cx - 140, 480, 280, 50), "✕  SALIR",
-                                color_texto=C["rojo"])
+        self.btn_jugar   = Boton((cx - 140, 340, 280, 50), "▶  INICIAR INVESTIGACIÓN",
+                                 color=C["boton_normal"], color_hover=C["boton_hover"],
+                                 color_texto=C["acento"])
+        self.btn_ayuda   = Boton((cx - 140, 410, 280, 50), "?  CÓMO JUGAR")
+        self.btn_ajustes = Boton((cx - 140, 480, 280, 50), "⚙  AJUSTES",
+                                 color_texto=C["acento2"])
+        self.btn_salir   = Boton((cx - 140, 550, 280, 50), "✕  SALIR",
+                                 color_texto=C["rojo"])
         self.tick = 0
 
     def actualizar(self, eventos, pos_mouse):
         self.tick += 1
         self.btn_jugar.actualizar(pos_mouse)
         self.btn_ayuda.actualizar(pos_mouse)
+        self.btn_ajustes.actualizar(pos_mouse)
         self.btn_salir.actualizar(pos_mouse)
         for ev in eventos:
             if self.btn_jugar.fue_clickeado(ev):
                 return "jugar"
             if self.btn_ayuda.fue_clickeado(ev):
                 return "ayuda"
+            if self.btn_ajustes.fue_clickeado(ev):
+                return "ajustes"
             if self.btn_salir.fue_clickeado(ev):
                 return "salir"
         return None
 
     def dibujar(self, surf):
-        surf.fill(C["fondo"])
-        # Líneas de cuadrícula pixel-art
+        P = get_C()
+        surf.fill(P["fondo"])
         for i in range(0, self.ancho, 40):
             pygame.draw.line(surf, (18, 26, 46), (i, 0), (i, self.alto), 1)
         for i in range(0, self.alto, 40):
             pygame.draw.line(surf, (18, 26, 46), (0, i), (self.ancho, i), 1)
 
-        # Título
         titulo_surf = self.sprites.get("logo")
         if titulo_surf:
             r = titulo_surf.get_rect(centerx=self.ancho // 2, y=80)
             surf.blit(titulo_surf, r)
         else:
-            texto_centrado(surf, "CYBER DETECTIVE", "grande", C["acento"],
+            texto_centrado(surf, "CYBER DETECTIVE", "grande", P["acento"],
                            self.ancho // 2, 120)
-            texto_centrado(surf, "El Árbol de la Verdad", "subtitulo", C["acento2"],
+            texto_centrado(surf, "El Árbol de la Verdad", "subtitulo", P["acento2"],
                            self.ancho // 2, 170)
 
         texto_centrado(surf, "Una investigación sobre ciberacoso y sus consecuencias legales",
-                       "pequeña", C["texto_dim"], self.ancho // 2, 220)
+                       "pequeña", P["texto_dim"], self.ancho // 2, 220)
 
-        # Parpadeo decorativo
         if (self.tick // 30) % 2 == 0:
             texto_centrado(surf, "► DETECTIVE ALEX – CASO ABIERTO ◄",
-                           "pequeña", C["acento2"], self.ancho // 2, 290)
+                           "pequeña", P["acento2"], self.ancho // 2, 290)
 
         self.btn_jugar.dibujar(surf)
         self.btn_ayuda.dibujar(surf)
+        self.btn_ajustes.dibujar(surf)
         self.btn_salir.dibujar(surf)
 
 
@@ -383,6 +444,144 @@ class PantallaAyuda:
                 texto_izq(surf, texto, "normal" if texto.startswith(" ") else "normal",
                           color, 80, y)
             y += 28
+
+        self.btn_volver.dibujar(surf)
+
+
+# ──────────────────────────────────────────────────────────
+#  PANTALLA: AJUSTES
+# ──────────────────────────────────────────────────────────
+
+class PantallaAjustes:
+    """Pantalla de configuración: volumen, tamaño de texto y contraste."""
+
+    TAMAÑOS = ["GRANDE", "NORMAL", "PEQUEÑO"]
+
+    def __init__(self, ancho, alto):
+        self.ancho = ancho
+        self.alto  = alto
+        cx = ancho // 2
+
+        # Barra de volumen
+        self.barra_x     = cx - 200
+        self.barra_y     = 220
+        self.barra_w     = 400
+        self.barra_h     = 18
+        self.arrastrando = False
+
+        # Botones de tamaño
+        self.btns_tamaño = []
+        for i, lbl in enumerate(self.TAMAÑOS):
+            bx = cx - 210 + i * 145
+            self.btns_tamaño.append(Boton((bx, 360, 130, 44), lbl))
+
+        # Botón de contraste (toggle)
+        self.btn_contraste = Boton((cx - 140, 470, 280, 50),
+                                   self._label_contraste(),
+                                   color_texto=C["acento2"])
+
+        self.btn_volver = Boton((cx - 100, alto - 80, 200, 44),
+                                "◄ VOLVER", color_texto=C["acento"])
+
+    def _label_contraste(self):
+        return "◉ ALTO CONTRASTE: ON" if AJUSTES["contraste"] else "○ ALTO CONTRASTE: OFF"
+
+    def _vol_a_px(self):
+        return int(self.barra_x + AJUSTES["volumen"] * self.barra_w)
+
+    def actualizar(self, eventos, pos_mouse):
+        self.btn_volver.actualizar(pos_mouse)
+        self.btn_contraste.actualizar(pos_mouse)
+        for b in self.btns_tamaño:
+            b.actualizar(pos_mouse)
+
+        for ev in eventos:
+            # ── Barra de volumen ──────────────────────────
+            if ev.type == pygame.MOUSEBUTTONDOWN and ev.button == 1:
+                bx, by = self.barra_x, self.barra_y - 10
+                if bx <= ev.pos[0] <= bx + self.barra_w and by <= ev.pos[1] <= by + self.barra_h + 20:
+                    self.arrastrando = True
+                    self._set_vol(ev.pos[0])
+
+            if ev.type == pygame.MOUSEBUTTONUP and ev.button == 1:
+                self.arrastrando = False
+
+            if ev.type == pygame.MOUSEMOTION and self.arrastrando:
+                self._set_vol(pos_mouse[0])
+
+            # ── Tamaño ────────────────────────────────────
+            for i, b in enumerate(self.btns_tamaño):
+                if b.fue_clickeado(ev):
+                    AJUSTES["tamaño"] = self.TAMAÑOS[i]
+                    init_fuentes()
+
+            # ── Contraste ─────────────────────────────────
+            if self.btn_contraste.fue_clickeado(ev):
+                AJUSTES["contraste"] = not AJUSTES["contraste"]
+                self.btn_contraste.texto = self._label_contraste()
+
+            # ── Volver ────────────────────────────────────
+            if self.btn_volver.fue_clickeado(ev):
+                return "menu"
+
+        return None
+
+    def _set_vol(self, mx):
+        ratio = (mx - self.barra_x) / self.barra_w
+        AJUSTES["volumen"] = max(0.0, min(1.0, ratio))
+        try:
+            pygame.mixer.music.set_volume(AJUSTES["volumen"])
+        except Exception:
+            pass
+
+    def dibujar(self, surf):
+        P = get_C()
+        surf.fill(P["fondo"])
+
+        # Cuadrícula
+        for i in range(0, self.ancho, 40):
+            pygame.draw.line(surf, (18, 26, 46), (i, 0), (i, self.alto), 1)
+        for i in range(0, self.alto, 40):
+            pygame.draw.line(surf, (18, 26, 46), (0, i), (self.ancho, i), 1)
+
+        cx = self.ancho // 2
+        texto_centrado(surf, "⚙  AJUSTES", "titulo", P["acento"], cx, 55)
+
+        # ── VOLUMEN ──────────────────────────────────────
+        texto_centrado(surf, "VOLUMEN DE MÚSICA", "subtitulo", P["acento2"], cx, 160)
+
+        # Pista de la barra
+        track_rect = pygame.Rect(self.barra_x, self.barra_y, self.barra_w, self.barra_h)
+        rect_pixel(surf, P["panel"], track_rect, P["panel_borde"])
+
+        # Relleno de volumen
+        fill_w = int(AJUSTES["volumen"] * self.barra_w)
+        if fill_w > 0:
+            fill_rect = pygame.Rect(self.barra_x, self.barra_y, fill_w, self.barra_h)
+            pygame.draw.rect(surf, P["acento"], fill_rect)
+
+        # Thumb (indicador)
+        thumb_x = self._vol_a_px()
+        pygame.draw.rect(surf, P["blanco"],
+                         (thumb_x - 6, self.barra_y - 6, 12, self.barra_h + 12))
+        pygame.draw.rect(surf, P["panel_borde"],
+                         (thumb_x - 6, self.barra_y - 6, 12, self.barra_h + 12), 2)
+
+        # Porcentaje
+        pct = int(AJUSTES["volumen"] * 100)
+        texto_centrado(surf, f"{pct}%", "normal", P["texto"], cx, self.barra_y + 42)
+
+        # ── TAMAÑO DE TEXTO ───────────────────────────────
+        texto_centrado(surf, "TAMAÑO DE TEXTO Y BOTONES", "subtitulo", P["acento2"], cx, 320)
+
+        for i, b in enumerate(self.btns_tamaño):
+            es_activo = (AJUSTES["tamaño"] == self.TAMAÑOS[i])
+            b.color_override = P["boton_activo"] if es_activo else None
+            b.dibujar(surf)
+
+        # ── CONTRASTE ─────────────────────────────────────
+        texto_centrado(surf, "ACCESIBILIDAD", "subtitulo", P["acento2"], cx, 438)
+        self.btn_contraste.dibujar(surf)
 
         self.btn_volver.dibujar(surf)
 
