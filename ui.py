@@ -445,7 +445,7 @@ class PantallaAyuda:
 # ──────────────────────────────────────────────────────────
 
 class PantallaAjustes:
-    """Pantalla de configuración: volumen, tamaño de texto y contraste."""
+    
 
     TAMAÑOS = ["GRANDE", "NORMAL", "PEQUEÑO"]
 
@@ -776,7 +776,7 @@ class PantallaPregunta:
                             elif j == i and not self.resultado:
                                 bb.color_override = C["boton_incorrecto"]
                         self.btn_continuar = Boton(
-                            (self.ancho // 2 - 120, self.alto - 90, 240, 48),
+                            (self.ancho - 240 - 20, self.alto - 90, 240, 48),
                             "► INSERTAR EN EL ÁRBOL",
                             color_texto=C["acento"] if self.resultado else C["acento2"]
                         )
