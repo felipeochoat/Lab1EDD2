@@ -1,10 +1,3 @@
-"""
-niveles.py  –  CyberDetective: El Árbol de la Verdad
-Generación aleatoria de niveles: mismo tipo de delito por nivel,
-pero con víctimas, agresores, evidencias y gravedad distintos
-en cada partida. Llama a generar_niveles() al inicio de cada juego.
-"""
- 
 import random
 from arbol_avl import NodoCaso
  
@@ -58,10 +51,6 @@ _RANGOS_GRAVEDAD = [
 # ──────────────────────────────────────────────────────────
  
 def _nivel_1_injuria(victima, agresor_user, agresor_nombre, plataforma, colegio, gravedad):
-    """
-    Nivel 1 – Injuria digital (Art. 220 C.P.)
-    Varía: cantidad de mensajes, días, plataforma, usuarios.
-    """
     num_mensajes = random.randint(8, 30)
     num_dias     = random.randint(3, 14)
     variantes_historia = [
@@ -161,10 +150,6 @@ def _nivel_1_injuria(victima, agresor_user, agresor_nombre, plataforma, colegio,
  
  
 def _nivel_2_calumnia(victima, agresor_user, agresor_nombre, plataforma, colegio, gravedad):
-    """
-    Nivel 2 – Calumnia en redes (Art. 221 C.P.)
-    Varía: compartidos, origen del rumor, testimonios.
-    """
     num_compartidos  = random.randint(50, 500)
     num_testimonios  = random.randint(2, 6)
     tipo_rumor = random.choice([
@@ -276,10 +261,6 @@ def _nivel_2_calumnia(victima, agresor_user, agresor_nombre, plataforma, colegio
  
  
 def _nivel_3_suplantacion(victima, agresor_user, agresor_nombre, plataforma, colegio, gravedad):
-    """
-    Nivel 3 – Suplantación de identidad (Ley 1273/2009)
-    Varía: tipo de contenido publicado, víctimas secundarias.
-    """
     num_victimas_sec = random.randint(3, 12)
     tipo_contenido = random.choice([
         f"insultos dirigidos a compañeros de {colegio}",
@@ -392,10 +373,6 @@ def _nivel_3_suplantacion(victima, agresor_user, agresor_nombre, plataforma, col
  
  
 def _nivel_4_hostigamiento(victima, agresor_user, agresor_nombre, plataforma, colegio, gravedad):
-    """
-    Nivel 4 – Hostigamiento coordinado (Ley 1273 + acoso reiterado)
-    Varía: número de cuentas, duración, tipo de ataques.
-    """
     num_cuentas  = random.randint(3, 8)
     num_semanas  = random.randint(2, 6)
     tipo_ataque = random.choice([
@@ -520,14 +497,6 @@ def _nivel_4_hostigamiento(victima, agresor_user, agresor_nombre, plataforma, co
 # ──────────────────────────────────────────────────────────
  
 def generar_niveles():
-    """
-    Genera los 4 niveles del juego con valores aleatorios.
-    Llama a esta función cada vez que inicia una nueva partida.
-    Garantiza que las gravedades sean únicas (sin colisión en el AVL).
- 
-    Retorna: lista NIVELES y dict NIVEL_FINAL
-    """
- 
     # Sortear personajes (víctima distinta en cada nivel para más variedad)
     victimas    = random.sample(_VICTIMAS, 4)
     agresores_u = random.choices(_AGRESORES_USUARIO, k=4)

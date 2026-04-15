@@ -1,15 +1,3 @@
-"""
-main.py  –  CyberDetective: El Árbol de la Verdad
-Juego educativo sobre ciberacoso y estructuras de datos (AVL).
- 
-Requisitos:
-    pip install pygame
- 
-Controles:
-    - Clic  → interactuar con botones y evidencias
-    - Scroll → desplazar reporte final
-"""
- 
 import sys
 import pygame
  
@@ -64,7 +52,7 @@ def main():
     NIVEL_FINAL = {}
  
     def nueva_partida():
-        """Genera niveles frescos y reinicia el árbol."""
+        #Genera niveles frescos y reinicia el árbol.
         nonlocal NIVELES, NIVEL_FINAL
         NIVELES, NIVEL_FINAL = generar_niveles()
         arbol.__init__()

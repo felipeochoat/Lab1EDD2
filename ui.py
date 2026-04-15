@@ -1,9 +1,3 @@
-"""
-ui.py
-Componentes de interfaz gráfica para CyberDetective.
-Estilo pixel-art: colores planos, bordes duros, fuentes monoespaciadas.
-"""
-
 import pygame
 
 # ──────────────────────────────────────────────────────────
@@ -76,7 +70,7 @@ C_CONTRASTE = {
 }
 
 def get_C():
-    """Devuelve la paleta activa según el ajuste de contraste."""
+    #Devuelve la paleta activa según el ajuste de contraste.
     return C_CONTRASTE if AJUSTES["contraste"] else C
 
 
@@ -119,14 +113,12 @@ def init_fuentes():
 # ──────────────────────────────────────────────────────────
 
 def rect_pixel(surf, color, rect, borde_color=None, grosor_borde=2):
-    """Rectángulo estilo pixel-art (sin border-radius)."""
     pygame.draw.rect(surf, color, rect)
     if borde_color:
         pygame.draw.rect(surf, borde_color, rect, grosor_borde)
 
 
 def cc(key):
-    """Shorthand: color de la paleta activa."""
     return get_C()[key]
 
 
@@ -143,7 +135,7 @@ def texto_izq(surf, texto, fuente_key, color, x, y):
 
 
 def wrap_texto(texto, fuente_key, max_ancho):
-    """Divide texto en líneas que caben en max_ancho px."""
+    #Divide texto en líneas que caben en max_ancho px.
     palabras = texto.split(" ")
     lineas = []
     actual = ""
@@ -276,7 +268,7 @@ class TarjetaEvidencia:
 # ──────────────────────────────────────────────────────────
 
 class PanelNodo:
-    """Panel lateral que muestra los datos del nodo seleccionado."""
+    #Panel lateral que muestra los datos del nodo seleccionado.
 
     def __init__(self, x, y, ancho, alto):
         self.rect = pygame.Rect(x, y, ancho, alto)

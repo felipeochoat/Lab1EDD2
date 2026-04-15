@@ -1,15 +1,8 @@
-"""
-visualizador.py
-Manejo de sprites y assets gráficos para CyberDetective.
-Genera placeholders pixel-art cuando no hay imágenes reales.
-"""
-
 import pygame
 from ui import C, F, RADIO_NODO
 
 
 def _px(surf, color, x, y, size=1):
-    """Dibuja un 'pixel' de tamaño size."""
     pygame.draw.rect(surf, color, (x, y, size, size))
 
 
@@ -175,11 +168,6 @@ def _sprite_bg(ancho, alto, color_base, patron="cuadricula"):
 # ──────────────────────────────────────────────────────────
 
 def cargar_sprites(ancho, alto):
-    """
-    Intenta cargar imágenes reales de /assets/.
-    Si no existen, genera placeholders pixel-art.
-    Retorna dict: { nombre: Surface }
-    """
     sprites = {}
     escala_icono = (40, 40)
 

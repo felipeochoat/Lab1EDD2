@@ -1,10 +1,4 @@
-"""
-arbol_avl.py
-Árbol AVL con nodos de caso (CyberDetective)
-Clave de ordenamiento: gravedad del delito (1-10)
-"""
-
-
+#CLASE NODO
 class NodoCaso:
     def __init__(self, id_caso, tipo_acoso, gravedad, evidencias, ley, pena, descripcion=""):
         self.id_caso = id_caso
@@ -22,7 +16,7 @@ class NodoCaso:
     def __repr__(self):
         return f"Caso({self.id_caso}, grav={self.gravedad})"
 
-
+#CLASE ÁRBOL
 class ArbolAVL:
     def __init__(self):
         self.raiz = None
@@ -136,17 +130,16 @@ class ArbolAVL:
             self._inorden_rec(nodo.derecho, res)
 
     def todos_los_nodos(self):
-        """Retorna lista de todos los nodos (inorden)."""
+        #Retorna lista de todos los nodos (inorden).
         return self.inorden()
 
     # ──────────────────────────────────────────
     #  POSICIONES PARA DIBUJAR
     # ──────────────────────────────────────────
     def obtener_posiciones(self, area_x, area_y, area_ancho, area_alto):
-        """
-        Calcula coordenadas (x, y) de cada nodo.
-        Retorna dict: { id(nodo): (x, y, nodo) }
-        """
+        #Calcula coordenadas (x, y) de cada nodo.
+        #Retorna dict: { id(nodo): (x, y, nodo) }
+
         posiciones = {}
         if self.raiz is None:
             return posiciones
