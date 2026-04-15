@@ -634,8 +634,8 @@ class PantallaNarrativa:
         dibujar_texto_multilinea(surf, d["historia"], "normal", C["texto"],
                                  80, 170, self.ancho - 160)
 
-        dibujar_texto_multilinea(surf, f"OBJETIVO: {d['objetivo']}",
-                                 "pequeña", acento, 80, 340, self.ancho - 160)
+        dibujar_texto_multilinea(surf, f"OBJETIVO: {d.get('objetivo', '')}",
+                         "pequeña", acento, 80, 340, self.ancho - 160)
 
         self.btn_continuar.dibujar(surf)
 
