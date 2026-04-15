@@ -548,9 +548,4 @@ def generar_niveles():
  
     return niveles, nivel_final
  
- 
-# ──────────────────────────────────────────────────────────
-#  COMPATIBILIDAD: NIVELES y NIVEL_FINAL globales
-#  (se regeneran en cada importación Y al llamar generar_niveles)
-# ──────────────────────────────────────────────────────────
 NIVELES, NIVEL_FINAL = generar_niveles()
