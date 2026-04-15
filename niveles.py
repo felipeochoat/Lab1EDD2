@@ -149,6 +149,7 @@ def _nivel_1_injuria(victima, agresor_user, agresor_nombre, plataforma, colegio,
         },
         "caso": caso,
         "bg_sprite": "bg_ciudad",
+        "escena_sprite": "escena_injuria",
         "color_acento": (80, 200, 255),
         # Metadatos visibles en el reporte final
         "_victima": victima,
@@ -264,6 +265,7 @@ def _nivel_2_calumnia(victima, agresor_user, agresor_nombre, plataforma, colegio
         },
         "caso": caso,
         "bg_sprite": "bg_red_social",
+        "escena_sprite": "escena_calumnia",
         "color_acento": (255, 200, 60),
         "_victima": victima,
         "_agresor_user": agresor_user,
@@ -379,6 +381,7 @@ def _nivel_3_suplantacion(victima, agresor_user, agresor_nombre, plataforma, col
         },
         "caso": caso,
         "bg_sprite": "bg_hacker",
+        "escena_sprite": "escena_suplantacion",
         "color_acento": (255, 80, 120),
         "_victima": victima,
         "_agresor_user": agresor_user,
@@ -502,6 +505,7 @@ def _nivel_4_hostigamiento(victima, agresor_user, agresor_nombre, plataforma, co
         },
         "caso": caso,
         "bg_sprite": "bg_matrix",
+        "escena_sprite": "escena_hostigamiento",
         "color_acento": (180, 80, 255),
         "_victima": victima,
         "_agresor_user": agresor_user,
@@ -569,6 +573,7 @@ def generar_niveles():
             "la línea de hechos para presentar el reporte final."
         ),
         "bg_sprite": "bg_oficina",
+        "escena_sprite": "escena_final",
         "color_acento": (80, 255, 160),
     }
  

@@ -225,6 +225,21 @@ def cargar_sprites(ancho, alto):
         except Exception:
             sprites[nombre] = _sprite_bg(ancho, alto, color, patron)
 
+    # Imágenes de escena narrativa (una por nivel)
+    escenas = [
+        "escena_injuria",
+        "escena_calumnia",
+        "escena_suplantacion",
+        "escena_hostigamiento",
+        "escena_final",
+    ]
+    for nombre in escenas:
+        try:
+            img = pygame.image.load(f"assets/{nombre}.png").convert_alpha()
+            sprites[nombre] = pygame.transform.scale(img, (500, 320))
+        except Exception:
+            sprites[nombre] = None  # PantallaNarrativa lo ignora si es None
+
     # Logo / título
     try:
         logo = pygame.image.load("assets/logo.png").convert_alpha()

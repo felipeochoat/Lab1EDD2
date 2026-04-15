@@ -622,23 +622,35 @@ class PantallaNarrativa:
         if bg:
             surf.blit(bg, (0, 0))
 
-        # Panel semitransparente
-        panel = pygame.Surface((self.ancho - 100, 300), pygame.SRCALPHA)
-        panel.fill((10, 14, 26, 210))
-        surf.blit(panel, (50, 140))
-        pygame.draw.rect(surf, acento, (50, 140, self.ancho - 100, 300), 2)
+        # Imagen de escena (columna derecha)
+        escena = self.sprites.get(d.get("escena_sprite", ""))
+        if escena:
+            img_x = self.ancho // 2 + 20
+            img_y = 130
+            img_w = self.ancho // 2 - 70
+            img_h = 320
+            escena_scaled = pygame.transform.scale(escena, (img_w, img_h))
+            surf.blit(escena_scaled, (img_x, img_y))
+            pygame.draw.rect(surf, acento, (img_x, img_y, img_w, img_h), 2)
 
-        texto_centrado(surf, d["titulo"], "subtitulo", acento,
-                       self.ancho // 2, 100)
+        # Panel de texto (columna izquierda si hay imagen, ancho completo si no)
+        panel_x = 50
+        panel_w = (self.ancho // 2 - 70) if escena else (self.ancho - 100)
+        panel = pygame.Surface((panel_w, 300), pygame.SRCALPHA)
+        panel.fill((10, 14, 26, 210))
+        surf.blit(panel, (panel_x, 140))
+        pygame.draw.rect(surf, acento, (panel_x, 140, panel_w, 300), 2)
+
+        titulo_cx = (panel_x + panel_w // 2) if escena else (self.ancho // 2)
+        texto_centrado(surf, d["titulo"], "subtitulo", acento, titulo_cx, 100)
 
         dibujar_texto_multilinea(surf, d["historia"], "normal", C["texto"],
-                                 80, 170, self.ancho - 160)
+                                 80, 170, panel_w - 30)
 
         dibujar_texto_multilinea(surf, f"OBJETIVO: {d.get('objetivo', '')}",
-                         "pequeña", acento, 80, 340, self.ancho - 160)
+                         "pequeña", acento, 80, 340, panel_w - 30)
 
         self.btn_continuar.dibujar(surf)
-
 
 # ──────────────────────────────────────────────────────────
 #  PANTALLA: RECOLECCIÓN DE EVIDENCIAS
