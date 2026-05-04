@@ -1,5 +1,5 @@
 import random
-from arbol_avl import NodoCaso
+from nodo import NodoCaso   # NodoCaso vive en su propio módulo
  
 # ──────────────────────────────────────────────────────────
 #  BANCOS DE DATOS ALEATORIOS
@@ -140,12 +140,14 @@ def _nivel_1_injuria(victima, agresor_user, agresor_nombre, plataforma, colegio,
         "bg_sprite": "bg_ciudad",
         "escena_sprite": "escena_injuria",
         "color_acento": (80, 200, 255),
-        # Metadatos visibles en el reporte final
         "_victima": victima,
         "_agresor_user": agresor_user,
         "_agresor_nombre": agresor_nombre,
         "_plataforma": plataforma,
         "_gravedad": gravedad,
+        "_colegio": colegio,
+        "_num_mensajes": num_mensajes,
+        "_num_dias": num_dias,
     }
  
  
@@ -257,6 +259,9 @@ def _nivel_2_calumnia(victima, agresor_user, agresor_nombre, plataforma, colegio
         "_agresor_nombre": agresor_nombre,
         "_plataforma": plataforma,
         "_gravedad": gravedad,
+        "_colegio": colegio,
+        "_num_compartidos": num_compartidos,
+        "_num_testimonios": num_testimonios,
     }
  
  
@@ -369,6 +374,8 @@ def _nivel_3_suplantacion(victima, agresor_user, agresor_nombre, plataforma, col
         "_agresor_nombre": agresor_nombre,
         "_plataforma": plataforma,
         "_gravedad": gravedad,
+        "_colegio": colegio,
+        "_num_testimonios": num_victimas_sec,
     }
  
  
@@ -489,6 +496,9 @@ def _nivel_4_hostigamiento(victima, agresor_user, agresor_nombre, plataforma, co
         "_agresor_nombre": agresor_nombre,
         "_plataforma": plataforma,
         "_gravedad": gravedad,
+        "_colegio": colegio,
+        "_num_cuentas": num_cuentas,
+        "_num_semanas": num_semanas,
     }
  
  

@@ -1,22 +1,12 @@
-#CLASE NODO
-class NodoCaso:
-    def __init__(self, id_caso, tipo_acoso, gravedad, evidencias, ley, pena, descripcion=""):
-        self.id_caso = id_caso
-        self.tipo_acoso = tipo_acoso
-        self.gravedad = gravedad        # clave del árbol
-        self.evidencias = evidencias    # lista de strings
-        self.ley = ley
-        self.pena = pena
-        self.descripcion = descripcion
+# ──────────────────────────────────────────────────────────
+#  NodoCaso vive en nodo.py (clases separadas por requerimiento)
+# ──────────────────────────────────────────────────────────
+from nodo import NodoCaso  # noqa: F401 – reexportado para compatibilidad
 
-        self.izquierdo = None
-        self.derecho = None
-        self.altura = 1
 
-    def __repr__(self):
-        return f"Caso({self.id_caso}, grav={self.gravedad})"
-
-#CLASE ÁRBOL
+# ──────────────────────────────────────────────────────────
+#  CLASE ÁRBOL AVL
+# ──────────────────────────────────────────────────────────
 class ArbolAVL:
     def __init__(self):
         self.raiz = None

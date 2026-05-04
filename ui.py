@@ -212,55 +212,252 @@ class Boton:
 # ──────────────────────────────────────────────────────────
 
 class TarjetaEvidencia:
-    ANCHO = 180
-    ALTO = 100
+    ANCHO = 200
+    ALTO  = 120
+    # Dimensiones del panel de mockup visual
+    IMG_W = 330
+    IMG_H = 420
 
-    def __init__(self, evidencia: dict, x, y, sprites: dict):
-        self.ev = evidencia
-        self.rect = pygame.Rect(x, y, self.ANCHO, self.ALTO)
-        self.sprites = sprites
+    def __init__(self, evidencia: dict, x, y, sprites: dict, nivel_data: dict = None):
+        self.ev          = evidencia
+        self.rect        = pygame.Rect(x, y, self.ANCHO, self.ALTO)
+        self.sprites     = sprites
+        self.nivel_data  = nivel_data or {}
         self.recolectada = False
-        self.hover = False
+        self.hover       = False
+        self._tick       = 0
+        self._click_anim = 0   # frames de animación de click (cuenta regresiva)
+        self._mockup     = None   # se genera lazy al primer hover
+
+    def _get_mockup(self):
+        """Genera la imagen de mockup la primera vez que se necesita.
+        La clave incluye el nombre de la víctima para evitar mostrar
+        datos de un nivel anterior si el objeto se reutiliza."""
+        if self._mockup is not None:
+            return self._mockup
+        try:
+            from evidencias_img import generar_imagen_evidencia
+            sprite_key    = self.ev.get("sprite", "")
+            self._mockup  = generar_imagen_evidencia(sprite_key, self.nivel_data)
+        except Exception as e:
+            # Fallback: panel de texto simple
+            s = pygame.Surface((self.IMG_W, self.IMG_H), pygame.SRCALPHA)
+            pygame.draw.rect(s, (12, 16, 26), (0, 0, self.IMG_W, self.IMG_H),
+                             border_radius=10)
+            self._mockup = s
+        return self._mockup
 
     def actualizar(self, pos_mouse):
         if not self.recolectada:
             self.hover = self.rect.collidepoint(pos_mouse)
+        else:
+            self.hover = False
+        if self.hover:
+            self._tick += 1
+            self._get_mockup()   # pre-calentar
+        else:
+            self._tick = 0
 
+    # ------------------------------------------------------------------
     def dibujar(self, surf):
-        alpha = 80 if self.recolectada else 255
-        col_bg = C["evidencia_col"] if self.recolectada else (
-            C["evidencia_hover"] if self.hover else C["evidencia_bg"]
-        )
-        col_borde = C["verde"] if self.recolectada else C["panel_borde"]
+        # Animación de click: flash blanco/verde al recolectar
+        if self._click_anim > 0:
+            self._click_anim -= 1
 
+        alpha  = 80 if self.recolectada else 255
+
+        if self.recolectada:
+            col_bg    = (30, 80, 45)
+            col_borde = C["verde"]
+        elif self._click_anim > 0:
+            t = self._click_anim / 18
+            col_bg    = (int(30 * (1-t) + 80 * t), int(100 * (1-t) + 220 * t), int(80 * (1-t) + 120 * t))
+            col_borde = C["verde"]
+        elif self.hover:
+            col_bg    = C["evidencia_hover"]
+            col_borde = C["acento"]
+        else:
+            col_bg    = C["evidencia_bg"]
+            col_borde = C["panel_borde"]
+
+        # Sombra exterior para dar profundidad
+        if not self.recolectada:
+            sombra = pygame.Surface((self.rect.w + 8, self.rect.h + 8), pygame.SRCALPHA)
+            sombra.fill((0, 0, 0, 60))
+            surf.blit(sombra, (self.rect.x + 4, self.rect.y + 4))
+
+        # Pulso de glow en hover (más vistoso)
+        if self.hover and not self.recolectada:
+            pulso = abs((self._tick % 24) - 12) / 12.0
+            glow_size = int(4 + 4 * pulso)
+            glow_r = pygame.Rect(self.rect.x - glow_size, self.rect.y - glow_size,
+                                 self.rect.w + glow_size * 2, self.rect.h + glow_size * 2)
+            glow_col = (
+                int(30  + 60  * pulso),
+                int(100 + 120 * pulso),
+                int(200 + 55  * pulso),
+            )
+            pygame.draw.rect(surf, glow_col, glow_r, 3, border_radius=10)
+
+        # Fondo de la tarjeta
         s = pygame.Surface((self.rect.w, self.rect.h), pygame.SRCALPHA)
         s.fill((*col_bg, alpha))
         surf.blit(s, self.rect.topleft)
-        pygame.draw.rect(surf, col_borde, self.rect, 2)
 
-        # Sprite / ícono
+        # Borde
+        pygame.draw.rect(surf, col_borde, self.rect, 2, border_radius=6)
+
+        # Línea decorativa superior de acento (solo si no recolectada)
+        if not self.recolectada:
+            accent_col = col_borde
+            pygame.draw.rect(surf, accent_col,
+                             (self.rect.x, self.rect.y, self.rect.w, 3), border_radius=6)
+
+        # Ícono de sprite (si existe) o emoji de tipo de evidencia
         sprite_key = self.ev.get("sprite", "")
-        icono = self.sprites.get(sprite_key)
+        icono      = self.sprites.get(sprite_key)
+        icon_y = self.rect.y + 10
         if icono:
-            surf.blit(icono, (self.rect.x + 8, self.rect.y + 8))
+            surf.blit(icono, (self.rect.x + 8, icon_y))
+        else:
+            # Emoji de fallback según tipo
+            _iconos = {
+                "captura": "📱", "chat": "💬", "perfil": "👤",
+                "post": "📢", "perfil_falso": "🎭", "metadata": "🌐",
+                "logs": "📋", "testimonio": "🗣", "analisis": "🔍",
+                "historial": "📄", "ip": "🌐", "denuncia": "⚖",
+            }
+            ico_txt = _iconos.get(sprite_key, "📁")
+            try:
+                f_ico = pygame.font.SysFont("segoeuiemoji,applesymbols,noto color emoji,symbola", 22)
+                s_ico = f_ico.render(ico_txt, True, (200, 220, 255))
+                surf.blit(s_ico, (self.rect.x + 8, icon_y))
+            except Exception:
+                pass
 
-        # Nombre
-        col_txt = C["negro"] if self.recolectada else C["acento"]
-        texto_izq(surf, self.ev["nombre"], "pequeña", col_txt,
-                  self.rect.x + 8, self.rect.y + 52)
+        # Nombre de la evidencia (bold / highlight en hover)
+        nombre_col = C["negro"] if self.recolectada else (C["acento"] if self.hover else C["texto"])
+        texto_izq(surf, self.ev["nombre"], "pequeña", nombre_col,
+                  self.rect.x + 8, self.rect.y + 70)
 
+        # Estado / instrucción
         if self.recolectada:
-            texto_izq(surf, "✔ RECOLECTADA", "pequeña", C["negro"],
-                      self.rect.x + 8, self.rect.y + 70)
+            texto_izq(surf, "✔ RECOLECTADA", "pequeña", C["verde"],
+                      self.rect.x + 8, self.rect.y + 90)
         elif self.hover:
-            texto_izq(surf, "Clic para recoger", "pequeña", C["acento2"],
-                      self.rect.x + 8, self.rect.y + 70)
+            # Texto pulsante "clic para recoger"
+            pulso2 = abs((self._tick % 30) - 15) / 15.0
+            bright = int(200 + 55 * pulso2)
+            texto_izq(surf, "► CLIC PARA RECOGER", "pequeña", (bright, bright, 60),
+                      self.rect.x + 8, self.rect.y + 90)
+        else:
+            texto_izq(surf, self.ev.get("descripcion", "")[:26], "pequeña", C["texto_dim"],
+                      self.rect.x + 8, self.rect.y + 90)
 
+    # ------------------------------------------------------------------
+    def dibujar_tooltip(self, surf, screen_w, screen_h):
+        """Muestra el mockup visual real de la evidencia al hacer hover.
+        Nunca se sale de la ventana: escala la imagen si es necesario.
+        """
+        if not self.hover or self.recolectada:
+            return
+
+        mockup = self._get_mockup()
+        if mockup is None:
+            return
+
+        MARGEN   = 6    # px de margen respecto a los bordes
+        FLECHA_H = 10   # altura de la flecha indicadora
+        LBL_H    = 18   # espacio reservado para la etiqueta de nombre
+
+        iw_orig, ih_orig = mockup.get_size()
+
+        # Espacio disponible arriba y abajo de la tarjeta
+        espacio_arriba = self.rect.y - MARGEN - FLECHA_H - LBL_H
+        espacio_abajo  = screen_h - self.rect.bottom - MARGEN - FLECHA_H - LBL_H
+
+        # Elegir lado con más espacio
+        usar_arriba = espacio_arriba >= espacio_abajo
+
+        espacio_h = espacio_arriba if usar_arriba else espacio_abajo
+        espacio_w = screen_w - 2 * MARGEN
+
+        # Calcular escala para que quepa sin salirse
+        escala = min(1.0,
+                     espacio_w / iw_orig,
+                     espacio_h / ih_orig)
+        escala = max(escala, 0.35)   # no encoger demasiado
+
+        iw = int(iw_orig * escala)
+        ih = int(ih_orig * escala)
+
+        # Escalar si es necesario
+        if escala < 0.999:
+            imagen = pygame.transform.smoothscale(mockup, (iw, ih))
+        else:
+            imagen = mockup
+
+        # Posición X: centrado sobre la tarjeta, ajustado a bordes
+        tip_x = self.rect.centerx - iw // 2
+        tip_x = max(MARGEN, min(tip_x, screen_w - iw - MARGEN))
+
+        # Posición Y: arriba o abajo según el lado elegido
+        if usar_arriba:
+            tip_y = self.rect.y - ih - FLECHA_H
+            tip_y = max(MARGEN, tip_y)
+        else:
+            tip_y = self.rect.bottom + FLECHA_H
+            # Asegurar que no se salga por abajo
+            tip_y = min(tip_y, screen_h - ih - MARGEN)
+
+        # Sombra exterior
+        sombra = pygame.Surface((iw + 8, ih + 8), pygame.SRCALPHA)
+        sombra.fill((0, 0, 0, 140))
+        surf.blit(sombra, (tip_x - 4, tip_y - 4))
+
+        # Imagen del mockup
+        surf.blit(imagen, (tip_x, tip_y))
+
+        # Borde de acento
+        pygame.draw.rect(surf, C["acento"], (tip_x, tip_y, iw, ih), 2,
+                         border_radius=10)
+
+        # Etiqueta de nombre encima o debajo según el lado
+        label = self.ev.get("nombre", "")
+        lbl_s = F["pequeña"].render(label, True, C["acento2"])
+        lx = tip_x + iw // 2 - lbl_s.get_width() // 2
+        lx = max(MARGEN, min(lx, screen_w - lbl_s.get_width() - MARGEN))
+        if usar_arriba:
+            ly = tip_y - LBL_H
+            if ly >= MARGEN:
+                surf.blit(lbl_s, (lx, ly))
+        else:
+            ly = tip_y + ih + 4
+            if ly + lbl_s.get_height() <= screen_h - MARGEN:
+                surf.blit(lbl_s, (lx, ly))
+
+        # Flecha indicadora
+        arrow_x = max(tip_x + 10, min(self.rect.centerx, tip_x + iw - 10))
+        if usar_arriba:   # tooltip arriba → flecha apunta abajo hacia tarjeta
+            pts = [(arrow_x,     tip_y + ih + FLECHA_H),
+                   (arrow_x - 7, tip_y + ih),
+                   (arrow_x + 7, tip_y + ih)]
+        else:             # tooltip abajo → flecha apunta arriba hacia tarjeta
+            pts = [(arrow_x,     tip_y - FLECHA_H),
+                   (arrow_x - 7, tip_y),
+                   (arrow_x + 7, tip_y)]
+        pygame.draw.polygon(surf, C["acento"], pts)
+
+    # ------------------------------------------------------------------
     def fue_clickeado(self, evento):
-        return (not self.recolectada and
+        if (not self.recolectada and
                 evento.type == pygame.MOUSEBUTTONDOWN and
                 evento.button == 1 and
-                self.rect.collidepoint(evento.pos))
+                self.rect.collidepoint(evento.pos)):
+            self._click_anim = 18   # arrancar animación de flash
+            return True
+        return False
+
 
 
 # ──────────────────────────────────────────────────────────
@@ -326,9 +523,11 @@ def _color_gravedad(g):
 # ──────────────────────────────────────────────────────────
 
 class PantallaMenu:
+    _NUM_PART = 40
+
     def __init__(self, ancho, alto, sprites):
-        self.ancho = ancho
-        self.alto = alto
+        self.ancho   = ancho
+        self.alto    = alto
         self.sprites = sprites
         cx = ancho // 2
         self.btn_jugar   = Boton((cx - 140, 340, 280, 50), "▶  INICIAR INVESTIGACIÓN",
@@ -341,8 +540,32 @@ class PantallaMenu:
                                  color_texto=C["rojo"])
         self.tick = 0
 
+        # Partículas de fondo
+        import random as _r
+        self._particulas = [
+            {
+                "x":     _r.uniform(0, ancho),
+                "y":     _r.uniform(0, alto),
+                "vy":    _r.uniform(-0.3, -0.9),
+                "vx":    _r.uniform(-0.2, 0.2),
+                "radio": _r.randint(1, 2),
+                "col":   _r.choice([C["acento"], C["acento2"], C["lila"]]),
+                "alpha": _r.randint(30, 100),
+            }
+            for _ in range(self._NUM_PART)
+        ]
+
     def actualizar(self, eventos, pos_mouse):
         self.tick += 1
+
+        import random as _r
+        for p in self._particulas:
+            p["x"] += p["vx"]
+            p["y"] += p["vy"]
+            if p["y"] < -4:
+                p["y"] = self.alto + 4
+                p["x"] = _r.uniform(0, self.ancho)
+
         self.btn_jugar.actualizar(pos_mouse)
         self.btn_ayuda.actualizar(pos_mouse)
         self.btn_ajustes.actualizar(pos_mouse)
@@ -361,16 +584,36 @@ class PantallaMenu:
     def dibujar(self, surf):
         P = get_C()
         surf.fill(P["fondo"])
+
+        # Cuadrícula de fondo
         for i in range(0, self.ancho, 40):
             pygame.draw.line(surf, (18, 26, 46), (i, 0), (i, self.alto), 1)
         for i in range(0, self.alto, 40):
             pygame.draw.line(surf, (18, 26, 46), (0, i), (self.ancho, i), 1)
+
+        # Partículas
+        for p in self._particulas:
+            ps = pygame.Surface((p["radio"] * 2, p["radio"] * 2), pygame.SRCALPHA)
+            pygame.draw.circle(ps, (*p["col"], p["alpha"]),
+                               (p["radio"], p["radio"]), p["radio"])
+            surf.blit(ps, (int(p["x"]) - p["radio"], int(p["y"]) - p["radio"]))
+
+        # Scanlines
+        scan = pygame.Surface((self.ancho, self.alto), pygame.SRCALPHA)
+        for sy in range(0, self.alto, 4):
+            pygame.draw.line(scan, (0, 0, 0, 30), (0, sy), (self.ancho, sy))
+        surf.blit(scan, (0, 0))
 
         titulo_surf = self.sprites.get("logo")
         if titulo_surf:
             r = titulo_surf.get_rect(centerx=self.ancho // 2, y=80)
             surf.blit(titulo_surf, r)
         else:
+            # Glitch: cada ~3 s desplaza 2 px con color diferente
+            glitch = (self.tick % 180) < 4
+            if glitch:
+                texto_centrado(surf, "CYBER DETECTIVE", "grande", P["rojo"],
+                               self.ancho // 2 + 3, 121)
             texto_centrado(surf, "CYBER DETECTIVE", "grande", P["acento"],
                            self.ancho // 2, 120)
             texto_centrado(surf, "El Árbol de la Verdad", "subtitulo", P["acento2"],
@@ -379,6 +622,7 @@ class PantallaMenu:
         texto_centrado(surf, "Una investigación sobre ciberacoso y sus consecuencias legales",
                        "pequeña", P["texto_dim"], self.ancho // 2, 220)
 
+        # Indicador parpadeante
         if (self.tick // 30) % 2 == 0:
             texto_centrado(surf, "► DETECTIVE ALEX – CASO ABIERTO ◄",
                            "pequeña", P["acento2"], self.ancho // 2, 290)
@@ -649,20 +893,48 @@ class PantallaNarrativa:
 # ──────────────────────────────────────────────────────────
 
 class PantallaEvidencias:
-    def __init__(self, ancho, alto, nivel_data, sprites):
-        self.ancho = ancho
-        self.alto = alto
-        self.datos = nivel_data
-        self.sprites = sprites
-        self.tarjetas = []
-        self.recolectadas = set()
-        self.mensaje = ""
-        self.tick_msg = 0
+    """Pantalla de recolección de evidencias.
 
-        # Crear tarjetas
+    Mejoras visuales:
+    - Partículas flotantes de fondo (estilo hacker/matrix)
+    - Efecto scanlines semitransparente
+    - Parpadeo de título (glitch leve)
+    - Tooltip con la descripción real de la evidencia al hover
+    - Pulso animado en tarjetas al hacer hover
+    """
+
+    # ── Partículas ─────────────────────────────────────────
+    _NUM_PARTICULAS = 30
+
+    def __init__(self, ancho, alto, nivel_data, sprites):
+        self.ancho   = ancho
+        self.alto    = alto
+        self.datos   = nivel_data
+        self.sprites = sprites
+        self.tarjetas      = []
+        self.recolectadas  = set()
+        self.mensaje       = ""
+        self.tick_msg      = 0
+        self.tick          = 0
+
+        # Partículas flotantes
+        import random as _r
+        self._particulas = [
+            {
+                "x":     _r.uniform(0, ancho),
+                "y":     _r.uniform(0, alto),
+                "vy":    _r.uniform(-0.4, -1.2),
+                "vx":    _r.uniform(-0.3, 0.3),
+                "radio": _r.randint(1, 3),
+                "alpha": _r.randint(40, 150),
+            }
+            for _ in range(self._NUM_PARTICULAS)
+        ]
+
+        # Crear tarjetas con posiciones del nivel
         for ev in nivel_data["evidencias_disponibles"]:
             px, py = ev["posicion"]
-            t = TarjetaEvidencia(ev, px, py, sprites)
+            t = TarjetaEvidencia(ev, px, py, sprites, nivel_data)
             self.tarjetas.append(t)
 
         self.btn_continuar = Boton(
@@ -672,14 +944,27 @@ class PantallaEvidencias:
         )
         self.btn_continuar.activo = False
 
+    # ── Lógica ─────────────────────────────────────────────
     def _todas_requeridas(self):
         req = self.datos["evidencias_requeridas"]
         return req.issubset(self.recolectadas)
 
     def actualizar(self, eventos, pos_mouse):
+        self.tick     += 1
         self.tick_msg += 1
+
+        # Mover partículas
+        import random as _r
+        for p in self._particulas:
+            p["x"] += p["vx"]
+            p["y"] += p["vy"]
+            if p["y"] < -5:
+                p["y"] = self.alto + 5
+                p["x"] = _r.uniform(0, self.ancho)
+
         for t in self.tarjetas:
             t.actualizar(pos_mouse)
+
         self.btn_continuar.activo = self._todas_requeridas()
         self.btn_continuar.actualizar(pos_mouse)
 
@@ -688,45 +973,109 @@ class PantallaEvidencias:
                 if t.fue_clickeado(ev):
                     t.recolectada = True
                     self.recolectadas.add(t.ev["id"])
-                    self.mensaje = f"✔ {t.ev['nombre']} recolectada"
-                    self.tick_msg = 0
+                    self.mensaje   = f"✔  {t.ev['nombre']} recolectada"
+                    self.tick_msg  = 0
             if self.btn_continuar.fue_clickeado(ev):
                 if self._todas_requeridas():
                     return "pregunta"
                 else:
-                    self.mensaje = "⚠ Faltan evidencias clave"
+                    self.mensaje  = "⚠  Faltan evidencias clave"
                     self.tick_msg = 0
         return None
 
+    # ── Dibujo ─────────────────────────────────────────────
     def dibujar(self, surf):
         surf.fill(C["fondo"])
-        d = self.datos
+        d      = self.datos
         acento = d.get("color_acento", C["acento"])
 
+        # Fondo de la escena
         bg = self.sprites.get(d.get("bg_sprite", ""))
         if bg:
             surf.blit(bg, (0, 0))
             oscuro = pygame.Surface((self.ancho, self.alto), pygame.SRCALPHA)
-            oscuro.fill((10, 14, 26, 140))
+            oscuro.fill((10, 14, 26, 155))
             surf.blit(oscuro, (0, 0))
 
-        texto_centrado(surf, "RECOLECTA LAS EVIDENCIAS", "subtitulo", acento,
-                       self.ancho // 2, 30)
+        # ── Partículas flotantes ───────────────────────────
+        for p in self._particulas:
+            ps = pygame.Surface((p["radio"] * 2, p["radio"] * 2), pygame.SRCALPHA)
+            pygame.draw.circle(ps, (*acento, p["alpha"]), (p["radio"], p["radio"]), p["radio"])
+            surf.blit(ps, (int(p["x"]) - p["radio"], int(p["y"]) - p["radio"]))
 
+        # ── Scanlines ─────────────────────────────────────
+        scan = pygame.Surface((self.ancho, self.alto), pygame.SRCALPHA)
+        for sy in range(0, self.alto, 4):
+            pygame.draw.line(scan, (0, 0, 0, 40), (0, sy), (self.ancho, sy))
+        surf.blit(scan, (0, 0))
+
+        # ── Título con efecto glitch leve ─────────────────
+        glitch = (self.tick % 90) < 3        # parpadeo 3 frames cada 90
+        titulo_col = C["rojo"] if glitch else acento
+        offset_x   = 2 if glitch else 0
+
+        # Panel HUD superior semitransparente
+        hud_s = pygame.Surface((self.ancho, 98), pygame.SRCALPHA)
+        hud_s.fill((8, 12, 26, 210))
+        surf.blit(hud_s, (0, 0))
+        pygame.draw.line(surf, acento, (0, 98), (self.ancho, 98), 2)
+        # Bordes laterales de acento
+        pygame.draw.rect(surf, acento, (0, 0, 4, 98))
+        pygame.draw.rect(surf, acento, (self.ancho - 4, 0, 4, 98))
+
+        # Sombra del título
+        sombra_s = F["subtitulo"].render("RECOLECTA LAS EVIDENCIAS", True, (0, 0, 0))
+        surf.blit(sombra_s, (self.ancho // 2 - sombra_s.get_width() // 2 + 2 + offset_x, 14))
+        texto_centrado(surf, "RECOLECTA LAS EVIDENCIAS", "subtitulo", titulo_col,
+                       self.ancho // 2 + offset_x, 12)
+
+        # Contador
         recolectadas_n = len(self.recolectadas & self.datos["evidencias_requeridas"])
-        total = len(self.datos["evidencias_requeridas"])
-        texto_centrado(surf, f"Evidencias clave: {recolectadas_n}/{total}",
-                       "normal", C["texto_dim"], self.ancho // 2, 65)
+        total          = len(self.datos["evidencias_requeridas"])
+        progreso_col   = C["verde"] if recolectadas_n == total else C["acento2"]
+        texto_centrado(surf, f"▣ EVIDENCIAS  {recolectadas_n} / {total}",
+                       "normal", progreso_col, self.ancho // 2, 52)
 
+        # Barra de progreso mejorada con glow
+        barra_w  = 400
+        barra_x  = self.ancho // 2 - barra_w // 2
+        barra_y  = 74
+        barra_h  = 10
+        pygame.draw.rect(surf, (20, 30, 50), (barra_x, barra_y, barra_w, barra_h), border_radius=5)
+        if total > 0:
+            fill = int(barra_w * recolectadas_n / total)
+            if fill > 0:
+                glow_bar = pygame.Surface((fill + 6, barra_h + 6), pygame.SRCALPHA)
+                glow_bar.fill((*progreso_col, 70))
+                surf.blit(glow_bar, (barra_x - 3, barra_y - 3))
+                pygame.draw.rect(surf, progreso_col, (barra_x, barra_y, fill, barra_h), border_radius=5)
+        pygame.draw.rect(surf, C["panel_borde"], (barra_x, barra_y, barra_w, barra_h), 1, border_radius=5)
+
+        # ── Tarjetas (sin tooltip) ─────────────────────────
         for t in self.tarjetas:
             t.dibujar(surf)
 
-        # Mensaje flotante
-        if self.tick_msg < 120:
-            alpha = min(255, (120 - self.tick_msg) * 4)
-            col = (*C["verde"], alpha)
-            msg_s = F["normal"].render(self.mensaje, False, C["verde"])
-            surf.blit(msg_s, (20, self.alto - 110))
+        # ── Tooltips (encima de todo) ──────────────────────
+        for t in self.tarjetas:
+            t.dibujar_tooltip(surf, self.ancho, self.alto)
+
+        # ── Mensaje flotante con fondo ─────────────────────
+        if self.tick_msg < 140:
+            alpha = min(255, (140 - self.tick_msg) * 4)
+            es_error = "⚠" in self.mensaje
+            msg_col  = C["rojo"] if es_error else C["verde"]
+            msg_s = F["normal"].render(self.mensaje, True, msg_col)
+            # Fondo del mensaje
+            bx, by = 20, self.alto - 120
+            msg_bg = pygame.Surface((msg_s.get_width() + 24, msg_s.get_height() + 14), pygame.SRCALPHA)
+            msg_bg.fill((40 if es_error else 10, 10, 40 if not es_error else 10, 200))
+            msg_bg.set_alpha(alpha)
+            surf.blit(msg_bg, (bx - 12, by - 6))
+            pygame.draw.rect(surf, msg_col,
+                             (bx - 12, by - 6, msg_s.get_width() + 24, msg_s.get_height() + 14),
+                             2, border_radius=4)
+            msg_s.set_alpha(alpha)
+            surf.blit(msg_s, (bx, by))
 
         self.btn_continuar.dibujar(surf)
 
